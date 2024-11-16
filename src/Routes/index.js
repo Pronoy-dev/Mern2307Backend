@@ -1,11 +1,5 @@
-const express = require('express');
+const express = require("express");
 const _ = express.Router();
-
-_.get('/ap1/v1/sh', (req, res) => {
-    res.end("hikj")
-})
-
-_.get("/hi", (req, res) => {
-    res.send("Kksd")
-})
-module.exports = _
+const authRoutes = require("./auth.apiRoutes");
+_.use("/api/v1/auth", authRoutes);
+module.exports = _;
