@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-
+const { emailTemplate } = require("../helpers/emailTemplate");
 const transporter = nodemailer.createTransport({
   service: "gmail",
   secure: true,
@@ -9,19 +9,15 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const SendMail = async () => {
+const SendMail = async (firstName, Otp, email) => {
   const info = await transporter.sendMail({
     from: "MERN 2307👻",
-    to: "taufik.cit.bd@gmail.com",
+    to: email,
     subject: "Verification Email  ✔",
-
-    html: `
-        <h1>hello </h1>
-        <button> Click </button>
-        `,
+    html: emailTemplate(firstName, Otp),
   });
 
-  console.log("Message sent: %s", info.messageId);
+  return info.messageId;
 };
 
 module.exports = { SendMail };

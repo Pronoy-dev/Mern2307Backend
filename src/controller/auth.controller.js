@@ -6,6 +6,9 @@ const {
   passwordCheker,
   bdNumberChecker,
 } = require("../utils/cheker");
+const { otpgenerator } = require("../helpers/OtpGenerator");
+const { SendMail } = require("../helpers/nodemailer");
+const { makeHaspassword, compareHashpassword } = require("../helpers/brypt");
 const registration = async (req, res) => {
   try {
     const {
@@ -60,6 +63,7 @@ const registration = async (req, res) => {
           )
         );
     }
+    const haspassword = await makeHaspassword(password);
 
     // now save the userinformation into database
     const saveUserInfo = await userModel.create({
@@ -67,19 +71,33 @@ const registration = async (req, res) => {
       email,
       phoneNumber,
       adress1,
-      password,
+      password: haspassword,
       ...(lastName && { lastName }),
       ...(adress2 && { adress2: adress2 }),
     });
 
+    // make a otp generator
+    const Otp = otpgenerator();
     // send a verification mail
-    await SendMail();
-
-    return res
-      .status(200)
-      .json(
-        new apiResponse(200, "Registraion Sucessfull", saveUserInfo, false)
-      );
+    const messageId = await SendMail(firstName, Otp, email);
+    if (messageId) {
+      const updatedUser = await userModel
+        .findOneAndUpdate(
+          { email: email },
+          {
+            otp: Otp,
+          },
+          {
+            new: true,
+          }
+        )
+        .select("-email -phoneNumber -password -role -createdAt -otp");
+      return res
+        .status(200)
+        .json(
+          new apiResponse(200, "Registraion Sucessfull", updatedUser, false)
+        );
+    }
   } catch (error) {
     return res
       .status(500)
@@ -89,4 +107,42 @@ const registration = async (req, res) => {
   }
 };
 
-module.exports = { registration };
+// login controller
+const login = async (req, res) => {
+  try {
+    const { eamilOrphoneNumber, password } = req.body;
+    if (!eamilOrphoneNumber || !password) {
+      return res
+        .status(400)
+        .json(new apiError(400, null, null, `Email or password Invalid`));
+    }
+
+    // check is email / phone number is correct or not
+    const checkisRegistredUser = await userModel.findOne({
+      $or: [{ email: eamilOrphoneNumber }, { phoneNumber: eamilOrphoneNumber }],
+    });
+
+    if (checkisRegistredUser) {
+      const passwordIsCorrect = await compareHashpassword(
+        password,
+        checkisRegistredUser.password
+      );
+      if (!passwordIsCorrect) {
+        return res
+          .status(400)
+          .json(
+            new apiError(400, null, null, `password Does not Match try Agin`)
+          );
+      }
+      return res
+        .status(500)
+        .json(new apiError(500, null, null, `login Sucessfull`));
+    }
+  } catch (error) {
+    return res
+      .status(500)
+      .json(new apiError(500, null, null, `login controller Error : ${error}`));
+  }
+};
+
+module.exports = { registration, login };

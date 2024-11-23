@@ -38,6 +38,7 @@ const userSchema = new Schema(
     },
     isVerifed: {
       type: Boolean,
+      default: false,
     },
     role: {
       type: String,
