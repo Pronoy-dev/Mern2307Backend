@@ -8,6 +8,7 @@ const {
 } = require("../utils/cheker");
 const { otpgenerator } = require("../helpers/OtpGenerator");
 const { SendMail } = require("../helpers/nodemailer");
+const {GenerateToken} = require("../helpers/JwtToken")
 const { makeHaspassword, compareHashpassword } = require("../helpers/brypt");
 const registration = async (req, res) => {
   try {
@@ -65,7 +66,14 @@ const registration = async (req, res) => {
     }
     const haspassword = await makeHaspassword(password);
 
-    // now save the userinformation into database
+   
+
+    // make a otp generator
+    const Otp = otpgenerator();
+    // send a verification mail
+    const messageId = await SendMail(firstName, Otp, email);
+    if (messageId) {
+       // now save the userinformation into database
     const saveUserInfo = await userModel.create({
       firstName,
       email,
@@ -76,16 +84,12 @@ const registration = async (req, res) => {
       ...(adress2 && { adress2: adress2 }),
     });
 
-    // make a otp generator
-    const Otp = otpgenerator();
-    // send a verification mail
-    const messageId = await SendMail(firstName, Otp, email);
-    if (messageId) {
       const updatedUser = await userModel
         .findOneAndUpdate(
           { email: email },
           {
             otp: Otp,
+            otpExpireDate: new Date().getTime() + 2 *60 * 1000,
           },
           {
             new: true,
@@ -110,6 +114,7 @@ const registration = async (req, res) => {
 // login controller
 const login = async (req, res) => {
   try {
+  
     const { eamilOrphoneNumber, password } = req.body;
     if (!eamilOrphoneNumber || !password) {
       return res
@@ -127,6 +132,7 @@ const login = async (req, res) => {
         password,
         checkisRegistredUser.password
       );
+    
       if (!passwordIsCorrect) {
         return res
           .status(400)
@@ -134,9 +140,12 @@ const login = async (req, res) => {
             new apiError(400, null, null, `password Does not Match try Agin`)
           );
       }
+      const userInfo = {_id:checkisRegistredUser._id ,firstName:checkisRegistredUser.firstName , email:checkisRegistredUser.email ,phoneNumber:checkisRegistredUser.phoneNumber}
+      const token =  await GenerateToken(userInfo);
       return res
-        .status(500)
-        .json(new apiError(500, null, null, `login Sucessfull`));
+        .status(200)
+        .cookie('token' ,token )
+        .json(new apiError(200, null, {data:{token:`Bearer ${token}`  , checkisRegistredUser}}, `login Sucessfull`));
     }
   } catch (error) {
     return res
@@ -145,4 +154,40 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { registration, login };
+// const verifyOtp controller 
+const verifyOtp = async (req,res)=> {
+  try {
+    const {email , otp} = req.body;
+    if(!email || !otp) {
+      return res
+        .status(400)
+        .json(new apiError(400, null, null, `email or otp Invalid`));
+    }
+
+    // check the given otp to the database
+    const matchOtp =await userModel.findOne({email :email });
+    
+    if(matchOtp.otpExpireDate >= new Date().getTime() &&  matchOtp.otp == otp){
+      const removeOtpCredential  = await userModel.findOneAndUpdate({email} , {
+        otp :null ,
+        otpExpireDate:null
+      },
+    {new:true})
+    if(removeOtpCredential){
+      return res
+        .status(400)
+        .json(new apiError(400, null, null, `Otp Verified done`));
+    }
+    
+    }
+    
+
+    
+  } catch (error) {
+    return res
+      .status(500)
+      .json(new apiError(500, null, null, `verifyOtp controller Error : ${error}`));
+  }
+}
+
+module.exports = { registration, login  ,verifyOtp};
