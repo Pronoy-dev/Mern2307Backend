@@ -1,7 +1,8 @@
 const { apiResponse } = require("../utils/ApiResponse");
 const { apiError } = require("../utils/ApiError");
 const categoryModel = require("../model/catrgory.model");
-const { uploadFileCloudinary } = require("../utils/cloudinary");
+const { uploadFileCloudinary, delteCloudinaryImage } = require("../utils/cloudinary");
+
 const createCategory = async (req, res) => {
   try {
     const { name } = req.body;
@@ -25,7 +26,7 @@ const createCategory = async (req, res) => {
     if (savedata) {
       return res
         .status(200)
-        .json(new apiError(200, null, `Category Create Sucessfull`));
+        .json(new apiResponse(200, null, `Category Create Sucessfull`));
     }
   } catch (error) {
     return res
@@ -41,4 +42,113 @@ const createCategory = async (req, res) => {
   }
 };
 
-module.exports = { createCategory };
+// get all category 
+
+const getAllCategory = async (req, res) => {
+  try {
+
+
+    const allCategory = await categoryModel.find();
+    if (allCategory?.length) {
+      return res
+        .status(200)
+        .json(new apiResponse(200, `Category Create Sucessfull`, allCategory, false));
+    }
+
+    return res
+      .status(401)
+      .json(
+        new apiError(
+          401,
+          null,
+          null,
+          `Category Not Found !!`
+        )
+      );
+
+
+  } catch (error) {
+    return res
+      .status(500)
+      .json(
+        new apiError(
+          500,
+          null,
+          null,
+          `getAll category controller Error : ${error}`
+        )
+      );
+  }
+}
+
+
+// update category 
+const updateCategory = async (req, res) => {
+  try {
+
+    const { id } = req.params;
+    const { name } = req.body;
+
+    const findCategory = await categoryModel.findById(id);
+    if (!findCategory) {
+      return res
+        .status(401)
+        .json(
+          new apiError(
+            401,
+            null,
+            null,
+            `Category Not Found !!`
+          )
+        );
+    }
+    let updatedObject = {}
+    if (name) {
+      updatedObject.name = name;
+    }
+
+    if (req.files?.image) {
+      const { path } = req.files?.image[0];
+      // remove the old image from cloudinary
+      const oldImage = findCategory.image?.split('/');
+      const cloudinaryPath = oldImage[oldImage?.length - 1]?.split(".")[0];
+      const deltedResoures = await delteCloudinaryImage(cloudinaryPath);
+      if (deltedResoures) {
+        const { secure_url } = await uploadFileCloudinary(path);
+        updatedObject.image = secure_url;
+      }
+    }
+
+    console.log(updatedObject);
+
+    // finally update the 
+
+    // const image = 
+    // find the object 
+
+    const updatedCategory = await categoryModel.findOneAndUpdate({ _id: id }, { ...updatedObject }, { new: true })
+    if (updatedCategory) {
+      return res
+        .status(200)
+        .json(new apiResponse(200, `Category updated Sucessfull`, updatedCategory, false));
+    }
+
+
+
+  } catch (error) {
+    return res
+      .status(500)
+      .json(
+        new apiError(
+          500,
+          null,
+          null,
+          `update category controller Error : ${error}`
+        )
+      );
+  }
+}
+
+
+
+module.exports = { createCategory, getAllCategory, updateCategory };

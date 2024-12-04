@@ -19,4 +19,21 @@ const uploadFileCloudinary = async (localFilePath) => {
   }
 };
 
-module.exports = { uploadFileCloudinary };
+
+const delteCloudinaryImage = async (cloudinaryPath) => {
+  try {
+    if (!cloudinaryPath) {
+      console.log("cloudinary Path Missing ")
+    }
+    return await cloudinary.api
+      .delete_resources([cloudinaryPath],
+        { type: 'upload', resource_type: 'image' })
+
+
+
+  } catch (error) {
+    console.log('Error from cloudinary delteImage function', error);
+  }
+}
+
+module.exports = { uploadFileCloudinary, delteCloudinaryImage };
