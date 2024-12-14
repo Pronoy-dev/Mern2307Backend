@@ -188,7 +188,7 @@ const delteCategory = async (req, res) => {
         .json(
           new apiResponse(
             200,
-            `Category Deleted  Sucessfull`,
+            `Category Deleted  Sucessfull `,
             deletedCategory,
             false
           )
