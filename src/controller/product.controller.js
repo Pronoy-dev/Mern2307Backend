@@ -1,8 +1,12 @@
 const productmodel = require("../model/product.model");
 const { apiResponse } = require("../utils/ApiResponse");
 const { apiError } = require("../utils/ApiError");
-const { uploadFileCloudinary } = require("../utils/cloudinary");
+const {
+  uploadFileCloudinary,
+  delteCloudinaryImage,
+} = require("../utils/cloudinary");
 const NodeCache = require("node-cache");
+const { createConnection } = require("mongoose");
 const myCache = new NodeCache();
 const createProduct = async (req, res) => {
   try {
@@ -170,9 +174,79 @@ const updateProductInformation = async (req, res) => {
       );
   }
 };
+
+//  update product iamge
+const updateProductImage = async (req, res) => {
+  try {
+    const { imageinfo } = req.body;
+    const { id } = req.params;
+    if (!imageinfo?.length) {
+      return res
+        .status(401)
+        .json(
+          new apiError(401, null, null, `product update image info not found!!`)
+        );
+    }
+
+    // check file is empty or not
+    if (!req.files) {
+      return res
+        .status(401)
+        .json(
+          new apiError(401, null, null, `product update image  not found!!`)
+        );
+    }
+    // delte the imageinfo
+
+    // delte all item
+    for (let image in imageinfo) {
+      const allParticle = image.split("/");
+      const cloudinaryUrl = allParticle[allParticle.length - 1].split(".")[0];
+      const deltedImage = await delteCloudinaryImage(cloudinaryUrl);
+      console.log(deltedImage);
+    }
+
+    // upload the new image
+
+    const newupdateImage = [];
+    for (let image of req.files.image) {
+      const { url } = await uploadFileCloudinary(image.path);
+      newupdateImage.push(url);
+    }
+
+    // search the database
+    const product = await productmodel.findById(id);
+    for (let imageid of imageinfo) {
+      product.image.pull(imageid);
+    }
+    product.image = [...product.image, ...newupdateImage];
+    await product.save();
+    if (!product) {
+      return res
+        .status(500)
+        .json(new apiError(500, null, null, `product update image Failed`));
+    }
+    return res
+      .status(200)
+      .json(new apiResponse(200, product, ` product iamge updated Sucessfull`));
+  } catch (error) {
+    return res
+      .status(500)
+      .json(
+        new apiError(
+          500,
+          null,
+          null,
+          `product update image controller Error ${error}`
+        )
+      );
+  }
+};
+
 module.exports = {
   createProduct,
   gelAllproducts,
   getSingleProduct,
   updateProductInformation,
+  updateProductImage,
 };
