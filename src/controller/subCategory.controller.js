@@ -1,11 +1,14 @@
 const subcategoryModel = require("../model/subcategory.model");
 const { apiResponse } = require("../utils/ApiResponse");
 const { apiError } = require("../utils/ApiError");
-
+const categoryModel = require('../model/catrgory.model')
 // create sub category controller
 const createSubCategory = async (req, res) => {
   try {
     const { name, category } = req.body;
+
+
+
     // validate user info
     if (!name || !category) {
       return res
@@ -30,11 +33,17 @@ const createSubCategory = async (req, res) => {
       category: category,
     });
 
+    // search the category 
+    const searchcategory = await categoryModel.findById(category);
+    searchcategory.subcategory.push(saveSubCategory._id);
+    await searchcategory.save()
+
     if (!saveSubCategory) {
       return res
         .status(500)
         .json(new apiError(500, null, null, `SubCategory created Failed `));
     }
+
 
     return res
       .status(200)
@@ -187,9 +196,58 @@ const updateSubCategory = async (req, res) => {
       );
   }
 };
+
+// delte subcategory 
+const deletesubCategory = async (req, res) => {
+  try {
+    const { subid } = req.params
+    const findsubCategory = await subcategoryModel.findByIdAndDelete(subid);
+    if (!findsubCategory) {
+      return res
+        .status(500)
+        .json(
+          new apiError(
+            500,
+            null,
+            null,
+            `delete SubCategory Failed`
+          )
+        );
+    }
+    const searchCategory = await categoryModel.findById(findsubCategory.category);
+    searchCategory.subcategory.pull(subid);
+    await searchCategory.save()
+    return res
+      .status(200)
+      .json(
+        new apiResponse(
+          500,
+          null,
+          null,
+          `delete SubCategory sucessfull`
+        )
+      );
+
+
+
+
+  } catch (error) {
+    return res
+      .status(500)
+      .json(
+        new apiError(
+          500,
+          null,
+          null,
+          `delete SubCategory controller Error : ${error}`
+        )
+      );
+  }
+}
 module.exports = {
   createSubCategory,
   allSubCategory,
   getSingleSubCategory,
   updateSubCategory,
+  deletesubCategory
 };

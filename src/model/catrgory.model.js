@@ -11,6 +11,12 @@ const categorySchema = new Schema(
       type: String,
       required: true,
     },
+    subcategory:[
+      {
+        type:Schema.Types.ObjectId,
+        ref:"subcategory"
+      }
+    ]
   },
   { timestamps: true }
 );
