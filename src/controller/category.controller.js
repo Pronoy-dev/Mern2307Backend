@@ -49,7 +49,7 @@ const createCategory = async (req, res) => {
 
 const getAllCategory = async (req, res) => {
   try {
-    const allCategory = await categoryModel.find();
+    const allCategory = await categoryModel.find().populate("subcategory");
     if (allCategory?.length) {
       return res
         .status(200)
