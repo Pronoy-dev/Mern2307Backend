@@ -86,7 +86,7 @@ const gelAllproducts = async (req, res) => {
         return res
           .status(200)
           .json(
-            new apiResponse(200, allProducts, `All product Retrive Sucessfull`)
+            new apiResponse(200,  `All product Retrive Sucessfull` ,allProducts ,false)
           );
       }
       return res
@@ -98,8 +98,9 @@ const gelAllproducts = async (req, res) => {
         .json(
           new apiResponse(
             200,
+            `All product Retrive Sucessfull (from Cached)`,
             JSON.parse(CahcedData),
-            `All product Retrive Sucessfull (from Cached)`
+            false
           )
         );
     }
