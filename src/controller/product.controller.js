@@ -1,6 +1,8 @@
 const productmodel = require("../model/product.model");
 const { apiResponse } = require("../utils/ApiResponse");
 const { apiError } = require("../utils/ApiError");
+const categoryModel = require("../model/catrgory.model");
+const subcategoryModel = require("../model/subcategory.model");
 const {
   uploadFileCloudinary,
   delteCloudinaryImage,
@@ -10,8 +12,27 @@ const { createConnection } = require("mongoose");
 const myCache = new NodeCache();
 const createProduct = async (req, res) => {
   try {
-    const { name, description, price, rating, stock, color } = req.body;
-    if (!name || !description || !price || !rating || !stock || !color) {
+    const {
+      name,
+      description,
+      price,
+      rating,
+      stock,
+      color,
+      category,
+      subcategory,
+    } = req.body;
+
+    if (
+      !name ||
+      !description ||
+      !price ||
+      !rating ||
+      !stock ||
+      !color ||
+      !category ||
+      !subcategory
+    ) {
       return res
         .status(401)
         .json(new apiError(401, null, null, `Product Credential Missing !!`));
@@ -52,12 +73,23 @@ const createProduct = async (req, res) => {
       stock,
       color,
       image: cloudinaryImageUrl,
+      category,
+      subcategory,
     });
     if (!saveProduct) {
       return res
         .status(500)
         .json(new apiError(500, null, null, `Product UPload failed Try again`));
     }
+
+    // save the recently uploaded product into category database
+    const findCategory = await categoryModel.findById(category);
+    findCategory.product.push(saveProduct._id);
+    await findCategory.save();
+    // save the recently uploaded product into subcategory database
+    const findSubCategory = await subcategoryModel.findById(subcategory);
+    findSubCategory.product.push(saveProduct._id);
+    await findSubCategory.save();
     return res
       .status(200)
       .json(new apiResponse(200, saveProduct, `Product upload  Sucessfull`));
@@ -86,7 +118,12 @@ const gelAllproducts = async (req, res) => {
         return res
           .status(200)
           .json(
-            new apiResponse(200,  `All product Retrive Sucessfull` ,allProducts ,false)
+            new apiResponse(
+              200,
+              `All product Retrive Sucessfull`,
+              allProducts,
+              false
+            )
           );
       }
       return res
@@ -130,7 +167,9 @@ const getSingleProduct = async (req, res) => {
     }
     return res
       .status(200)
-      .json(new apiResponse(200, searchProduct, ` product Retrive Sucessfull`));
+      .json(
+        new apiResponse(200, `product Retrive Sucessfull`, searchProduct, false)
+      );
   } catch (error) {
     return res
       .status(500)
