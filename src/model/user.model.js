@@ -24,7 +24,7 @@ const userSchema = new Schema(
 
     adress1: {
       type: String,
-      required: true,
+    
       trim: true,
     },
     adress2: {

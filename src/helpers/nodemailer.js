@@ -14,7 +14,7 @@ const SendMail = async (firstName, Otp, email) => {
     from: "MERN 2307👻",
     to: email,
     subject: "Verification Email  ✔",
-    html: emailTemplate(firstName, Otp),
+    html: emailTemplate(firstName, Otp ,email),
   });
 
   return info.messageId;

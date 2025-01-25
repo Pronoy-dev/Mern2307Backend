@@ -1,4 +1,4 @@
-const emailTemplate = (firstName, otp) => {
+const emailTemplate = (firstName, otp ,email) => {
   return `
 <html lang="en">
 <head>
@@ -50,9 +50,16 @@ const emailTemplate = (firstName, otp) => {
         <p>This code will expire in [time period, e.g., 10 minutes]. If you did not request this code, please ignore this email or contact our support team.</p>
 
         <div class="footer">
+<<<<<<< HEAD
             <p>Best regards,<br>
             Mern @307<br>
             <a href="mailto:contact@yourcompany.com">Click </a></p>
+=======
+            <p>Best regards,<br></p>
+            <button>
+                <a href="${process.env.FRONTEND_DOMAIN}/otpverify/${email}" target= "_blank" >Click </a>
+            </button>
+>>>>>>> f2340839a1011c8b67473a9b5bd24f6b1397e528
         </div>
     </div>
 </body>
