@@ -10,6 +10,13 @@ const { otpgenerator } = require("../helpers/OtpGenerator");
 const { SendMail } = require("../helpers/nodemailer");
 const { GenerateToken } = require("../helpers/JwtToken")
 const { makeHaspassword, compareHashpassword } = require("../helpers/brypt");
+const usermodel = require("../model/user.model");
+// Cookie options
+const options = {
+  httpOnly: true, // Prevent client-side JavaScript access
+  secure: false, // Set to true if using HTTPS
+ 
+  };
 const registration = async (req, res) => {
   try {
     const {
@@ -136,7 +143,7 @@ const login = async (req, res) => {
       const token = await GenerateToken(userInfo);
       return res
         .status(200)
-        .cookie('token', token)
+        .cookie('token', token , options)
         .json(new apiError(200, null, { data: { token: `Bearer ${token}`, checkisRegistredUser } }, `login Sucessfull`));
     }
   } catch (error) {
@@ -150,9 +157,11 @@ const login = async (req, res) => {
 const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
+  
+
     if (!email || !otp) {
       return res
-        .status(400)
+        .status(404)
         .json(new apiError(400, null, null, `email or otp Invalid`));
     }
 
@@ -160,9 +169,20 @@ const verifyOtp = async (req, res) => {
     const matchOtp = await userModel.findOne({ email: email });
 
     if (matchOtp.otpExpireDate >= new Date().getTime() && matchOtp.otp == parseInt(otp)) {
-      console.log("milce");
-    return
-    
+  
+
+      const removeOtpCredential = await userModel.findOneAndUpdate({ email }, {
+        otp: null,
+        otpExpireDate: null
+      },
+        { new: true })
+      if (removeOtpCredential) {
+        return res
+          .status(200)
+          .json(new apiError(200,  `Otp Verified done` , null , false));
+      }
+
+    }else{
       const removeOtpCredential = await userModel.findOneAndUpdate({ email }, {
         otp: null,
         otpExpireDate: null
@@ -171,10 +191,8 @@ const verifyOtp = async (req, res) => {
       if (removeOtpCredential) {
         return res
           .status(201)
-          .json(new apiError(201, null, null, `Otp Verified done`));
+          .json(new apiError(201, null, null, `Otp does't match  or time expired`));
       }
-
-    }else{
       return res
           .status(401)
           .json(new apiError(401, null, null, `Otp does't match  or time expired`));
@@ -189,4 +207,48 @@ const verifyOtp = async (req, res) => {
   }
 }
 
-module.exports = { registration, login, verifyOtp };
+
+// reset opt
+const resendOpt = async (req,res)=> {
+  try {
+    const {email} = req.body;
+
+    // find the user
+    const user = await usermodel.findOne({email})
+    if(!user){
+      return res
+      .status(401)
+      .json(new apiError(401, null, null, `user email not found`));
+    }
+    
+    // make a otp generator
+    const Otp = otpgenerator();
+    // send a verification mail
+    const messageId = await SendMail(`${user.firstName} Here Is Your RESEND OPT`, Otp, email);
+    if (messageId) {
+     
+
+     await userModel
+        .findOneAndUpdate(
+          { email:user.email },
+          {
+            otp: Otp,
+            otpExpireDate: new Date().getTime() + 30 * 60 * 1000,
+          },
+          {
+            new: true,
+          }
+        )
+        .select("-email -phoneNumber -password -role -createdAt -otp");
+        return res
+          .status(201)
+          .json(new apiResponse(201, `Otp Resend sucessfull` ,null, false));
+    }
+    
+  } catch (error) {
+    return res
+    .status(500)
+    .json(new apiError(500, null, null, `resent opt controller Error : ${error}`));
+  }
+}
+module.exports = { registration, login, verifyOtp ,resendOpt };
