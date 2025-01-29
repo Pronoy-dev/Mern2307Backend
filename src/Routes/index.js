@@ -8,6 +8,7 @@ const productApiRoutes = require("../Routes/product.apiRoutes");
 const bannerRoures = require("../Routes/banner.apiRoutes");
 const flashSale = require("../Routes/flashsale.apiRoutes");
 const cartroute = require("../Routes/cart.apiRoutes");
+const orderRoute = require("../Routes/order.apiRoutes");
 _.use("/api/v1/auth", authRoutes);
 _.use("/api/v1", categoryRoutes);
 _.use("/api/v1", subcategoryApiRoutes);
@@ -15,6 +16,7 @@ _.use("/api/v1", productApiRoutes);
 _.use("/api/v1", bannerRoures);
 _.use("/api/v1", flashSale);
 _.use("/api/v1", cartroute);
+_.use("/api/v1", orderRoute);
 _.use("*", (req, res) => {
   return res.status(500).json(new apiError(500, null, null, `Invalid Routes`));
 });
