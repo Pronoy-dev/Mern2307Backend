@@ -129,10 +129,31 @@ const userAddtoCart = async (req, res) => {
         .status(401)
         .json(new apiError(401, null, null, `cart Not Found`));
     }
+
+    // extract all item and total price
+    const cartinfo = deletedcart.reduce(
+      (initalvalue, item) => {
+        const { product, quantity } = item;
+        initalvalue.totalPrice += product.price * quantity;
+        initalvalue.totaitem += quantity;
+        return initalvalue;
+      },
+      {
+        totalPrice: 0,
+        totaitem: 0,
+      }
+    );
+
+    const { totalPrice, totaitem } = cartinfo;
     return res
       .status(200)
       .json(
-        new apiResponse(200, `cart  delete Sucessfull`, deletedcart, false)
+        new apiResponse(
+          200,
+          `cart retrive  Sucessfull`,
+          { userCartItem: deletedcart, totalPrice, totaitem },
+          false
+        )
       );
   } catch (error) {
     return res
