@@ -67,6 +67,10 @@ const orderSchema = new Schema(
         type: String,
         trim: true,
       },
+      tran_id: {
+        type: String,
+        trim: true,
+      },
     },
     status: {
       type: String,
